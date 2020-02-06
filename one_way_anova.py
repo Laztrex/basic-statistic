@@ -12,37 +12,44 @@ class Anova:
     def __init__(self, file_for_analyze):
         self.groups = {}
         self.file = file_for_analyze
-        self.means = {}
         self.sum_mean = 0
+        self.value_ssb, self.value_ssw, self.sst = 0, 0, 0
 
     def open_file(self):
         with open(self.file, 'r', newline='') as csv_file:
             reader = csv.DictReader(csv_file, delimiter=',')
             for val in reader:
                 if val["Therapy"] in self.groups:
-                    self.groups[val["Therapy"]].append(int(val["expr"]))
-                    self.means[val["Therapy"]] = 0
+                    self.groups[val["Therapy"]]["mean"] += [(int(val["expr"]))]
                 else:
-                    self.groups[val["Therapy"]] = [int(val["expr"])]
+                    self.groups[val["Therapy"]] = {'mean': [(int(val["expr"]))]}
+        print(self.groups)
         self.calculate_mean()
 
     def calculate_mean(self):
-        total_mean_groups = []
+        total_mean, n = 0, 0
         for group, values in self.groups.items():
-            total_mean_groups += values
-            self.means[group] = statistics.mean(values)
-        self.sum_mean = sum(total_mean_groups) / len(total_mean_groups)
-        print(self.sum_mean)
-        print(self.means)
-        print(f'Вся информация о таблице: {self.groups}')
-        self.sst()
+            summ = sum(values["mean"])
+            lenght = len(values["mean"])
+            total_mean += summ
+            n += lenght
+            self.groups[group] = {'df': lenght}
+            self.groups[group]["mean"] = summ / lenght
+        print(self.groups)
+        self.ssb(total_mean / n)
+
+    def ssb(self, mean_gr):
+        for i in self.groups.values():
+            self.value_ssb += i["df"] * ((i["mean"] - mean_gr) ** 2)
+
+    def ssw(self):
+        pass
 
     def sst(self):
-        for group, values in self.groups.items():
-            print(sum([(x - self.sum_mean) ** 2 for x in values]))
+        pass
 
-    #
-    # def calc_sum_sq(self):
+    def f_value(self):
+        pass
 
 
 if __name__ == '__main__':
@@ -58,3 +65,5 @@ if __name__ == '__main__':
 # F_value, p_value = sp.f_oneway(dict_data["A"], dict_data["B"], dict_data["C"], dict_data["D"])
 # print(F_value, p_value)
 
+# TODO задействовать collections для работы со словарями
+# TODO после освоения расчетов статистических перенести работу на статистические пакеты
