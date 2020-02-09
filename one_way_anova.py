@@ -2,6 +2,7 @@
 # Задача: Сравнить эффективность четырех различных типов терапии, представленных в таблице.
 
 import csv
+from math import sqrt
 import pandas as pd
 import statistics
 import scipy.stats as sp
@@ -34,22 +35,35 @@ class Anova:
             total_mean += summ
             n += lenght
             self.groups[group] = {'df': lenght}
-            self.groups[group]["mean"] = summ / lenght
+            mean = summ / lenght
+            self.groups[group]["mean"] = mean
+
+            self.groups[group].update({'sd': sqrt(self.ssw(values["mean"], mean) / lenght - 1)})
         print(self.groups)
         self.ssb(total_mean / n)
+        self.f_value(n)
+        print(self.value_ssw)
 
     def ssb(self, mean_gr):
         for i in self.groups.values():
             self.value_ssb += i["df"] * ((i["mean"] - mean_gr) ** 2)
+        print(self.value_ssb)
 
-    def ssw(self):
-        pass
+    def ssw(self, values, mean_group):
+        p = 0
+        for i in values:
+            val = (i - mean_group) ** 2
+            p += val
+            self.value_ssw += val
+        return p
 
     def sst(self):
         pass
 
-    def f_value(self):
-        pass
+    def f_value(self, n):
+        f = (self.value_ssb / (len(self.groups) - 1)) / (self.value_ssw / (n - len(self.groups)))
+        print(f)
+        print(self.value_ssb / (len(self.groups) - 1))
 
 
 if __name__ == '__main__':
