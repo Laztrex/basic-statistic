@@ -47,7 +47,7 @@ class Anova:
     def ssb(self, mean_gr):
         for i in self.groups.values():
             self.value_ssb += i["df"] * ((i["mean"] - mean_gr) ** 2)
-        print(self.value_ssb)
+        print(f'ssb - {self.value_ssb}')
 
     def ssw(self, values, mean_group):
         p = 0
@@ -57,13 +57,15 @@ class Anova:
             self.value_ssw += val
         return p
 
-    def sst(self):
-        pass
+    def p_value(self, f, dfb, dfw):
+        return sp.f.sf(f, dfb, dfw)
 
     def f_value(self, n):
         f = (self.value_ssb / (len(self.groups) - 1)) / (self.value_ssw / (n - len(self.groups)))
-        print(f)
+        print(f'f-value - {f}')
         print(self.value_ssb / (len(self.groups) - 1))
+        print(f'p-value - {self.p_value(f, len(self.groups) - 1, n - len(self.groups))}')
+        return f
 
 
 if __name__ == '__main__':
