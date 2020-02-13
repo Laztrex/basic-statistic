@@ -43,6 +43,7 @@ class Anova:
         self.ssb(total_mean / n)
         self.f = self.f_value(n)
         print(self.value_ssw)
+        print(self.value_ssw / (n - len(self.groups)))
         self.beautiful_made_table()
 
     def ssb(self, mean_gr):
@@ -63,6 +64,7 @@ class Anova:
         return self.p
 
     def f_value(self, n):
+        print(f'ssw {self.value_ssw}')
         f = (self.value_ssb / (len(self.groups) - 1)) / (self.value_ssw / (n - len(self.groups)))
         print(f'f-value - {f}')
         print(self.value_ssb / (len(self.groups) - 1))
@@ -87,6 +89,13 @@ class Anova:
 
         F_value, p_value = sp.f_oneway(dict_data["A"], dict_data["B"], dict_data["C"], dict_data["D"])
         print(F_value, p_value)
+
+
+class MultiAnova(Anova):
+
+    def __init__(self, file_for_analyze):
+        super().__init__(file_for_analyze=file_for_analyze)
+        pass
 
 
 if __name__ == '__main__':
