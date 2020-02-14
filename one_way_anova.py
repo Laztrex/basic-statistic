@@ -7,6 +7,7 @@ import pandas as pd
 import statistics
 import scipy.stats as sp
 from decimal import *
+from termcolor import cprint
 import collections
 
 
@@ -102,34 +103,45 @@ class Anova:
 
 class MultiAnova(Anova):
 
-    def __init__(self, file_for_analyze, *args):
+    def __init__(self, file_for_analyze, dep):
         super().__init__(file_for_analyze=file_for_analyze)
-        self.indep_var = args
+        self.dep_var = dep
+        #self.groups = collections.defaultdict()
 
     def run(self):
         self.open_file()
-        print(self.groups)
+
         for i, j in self.groups.items():
-            print(i, j)
+            print(i, j["D1"])
 
     def writer(self, data):
+        indep_list = data.fieldnames.copy()
+        indep_list.remove(self.dep_var)
         for val in data:
-            try:
-                print(val['age'])
-                if val['dose'] in self.groups[val[self.indep_var[0]]]:
-                    self.groups[val[self.indep_var[0]]][val[self.indep_var[1]]]["mean"] += ([Decimal(val[self.dep_var])])
-                else:
-                    self.groups[val[self.indep_var[0]]].update({
-                        val[self.indep_var[1]]: {'mean': [Decimal(val[self.dep_var])]}})
-            except Exception:
-                self.groups[val[self.indep_var[0]]] = {val[self.indep_var[1]]: {'mean': [Decimal(val[self.dep_var])]}}
+            for i in indep_list[1:]:
+                try:
+                    if val[i] in self.groups[val[indep_list[0]]]:
+                        self.groups[val[indep_list[0]]][val[i]]["mean"] += ([Decimal(val[self.dep_var])])
+                        cprint(f'if - {self.groups}', color='cyan')
+                    elif val[i]:
+                        self.groups[val[indep_list[0]]].update({
+                            val[i]: {'mean': [Decimal(val[self.dep_var])]}})
+                        cprint(f'else - {self.groups}', color='green')
+                    else:
+                        continue
+                except Exception:
+                    self.groups[val[indep_list[0]]] = {val[i]: {'mean': [Decimal(val[self.dep_var])]}}
+                    cprint(f'exception - {self.groups}', color='blue')
+                    
+    def represent(self):
+        pass
 
 
 if __name__ == '__main__':
     # my_statistic = Anova(file_for_analyze='genetherapy.csv')
     # my_statistic.run()
-    my = MultiAnova('atherosclerosis.csv', 'age', 'dose')
+    my = MultiAnova('atherosclerosis.csv', 'expr')
     my.run()
 
 # TODO после освоения расчетов статистических перенести работу на статистические пакеты
-# TODO Надо каждый метод сделать независимым, масштабируемым. С возможностью применять многофакторный анализ
+
