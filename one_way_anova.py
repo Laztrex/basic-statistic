@@ -114,20 +114,15 @@ class MultiAnova(Anova):
 
     def writer(self, data):
         for val in data:
-            if val[self.indep_var[0]] in self.groups and val[self.indep_var[1]] in self.groups:
-                self.groups[val[self.indep_var[0]]][val[self.indep_var[1]]]["mean"] += ([Decimal(val[self.dep_var])])
-            else:
-                try:
-                    self.groups[val[self.indep_var[0]]][val[self.indep_var[1]]]['mean'] += [Decimal(val[self.dep_var])]
-                except KeyError:
-                    self.groups[val[self.indep_var[0]]] = {
-                        val[self.indep_var[1]]: {'mean': [Decimal(val[self.dep_var])]}}
-                #     if val[self.indep_var[1]] in self.groups[self.indep_var[0]]:
-                #         self.groups[val[self.indep_var[0]]].update \
-                #             ({val[self.indep_var[1]]: {'mean': [Decimal(val[self.dep_var])]}})
-                # else:
-                #     self.groups[val[self.indep_var[0]]] = {
-                #         val[self.indep_var[1]]: {'mean': [Decimal(val[self.dep_var])]}}
+            try:
+                print(val['age'])
+                if val['dose'] in self.groups[val[self.indep_var[0]]]:
+                    self.groups[val[self.indep_var[0]]][val[self.indep_var[1]]]["mean"] += ([Decimal(val[self.dep_var])])
+                else:
+                    self.groups[val[self.indep_var[0]]].update({
+                        val[self.indep_var[1]]: {'mean': [Decimal(val[self.dep_var])]}})
+            except Exception:
+                self.groups[val[self.indep_var[0]]] = {val[self.indep_var[1]]: {'mean': [Decimal(val[self.dep_var])]}}
 
 
 if __name__ == '__main__':
