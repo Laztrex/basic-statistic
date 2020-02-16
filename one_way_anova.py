@@ -38,28 +38,32 @@ class Anova:
             else:
                 self.groups[val[self.indep_var]] = {'mean': [Decimal(val[self.dep_var])]}
 
-    def calculate(self):
+    def calculate(self, subtree=None):
+        if subtree is None:
+            subtree = self.groups
         total_mean, n = 0, 0
-        for group, values in self.groups.items():
+        for group, values in subtree.items():
             summ = Decimal(sum(values["mean"]))
             lenght = len(values["mean"])
             total_mean += summ
             n += lenght
-            self.groups[group] = {'df': lenght}
-            mean = Decimal(summ / lenght)
-            self.groups[group]["mean"] = mean
-            self.groups[group].update({'sd': Decimal(sqrt(self.calc_ssw(values["mean"], mean) / lenght - 1))})
+            subtree[group] = {'df': lenght}
+            mean = summ / lenght
+            subtree[group]["mean"] = mean
+            subtree[group].update({'sd': Decimal(sqrt(self.calc_ssw(values["mean"], mean) / lenght - 1))})
 
-        print(self.groups)
-        print(self.calc_ssb(mean_gr=total_mean / n))
-        print(self.ssw)
-        print(self.ssw / (n - len(self.groups)))
-        print(self.f_value(n))
-        print(self.p_value(int(self.f), len(self.groups) - 1, n - len(self.groups)))
-        self.beautiful_made_table()
 
-    def calc_ssb(self, mean_gr):
-        for i in self.groups.values():
+        print(subtree)
+        print(self.calc_ssb(subtree=subtree, mean_gr=total_mean / n))
+        print(self.ssb / (len(subtree) - 1))
+        print(f'ssw - {self.ssw}')
+        print(self.ssw / (n - len(subtree)))
+        print(self.f_value(subtree, n))
+        print(self.p_value(int(self.f), len(subtree) - 1, n - len(subtree)))
+        # self.beautiful_made_table()
+
+    def calc_ssb(self, subtree, mean_gr):
+        for i in subtree.values():
             self.ssb += i["df"] * ((i["mean"] - mean_gr) ** 2)
         return f'ssb - {self.ssb}'
 
@@ -75,20 +79,20 @@ class Anova:
         self.p = sp.f.sf(f, dfb, dfw)
         return f'p-value - {self.p}'
 
-    def f_value(self, n):
-        self.f = (self.ssb / (len(self.groups) - 1)) / (self.ssw / (n - len(self.groups)))
+    def f_value(self, subtree, n):
+        self.f = (self.ssb / (len(subtree) - 1)) / (self.ssw / (n - len(subtree)))
         return f'f-value = {self.f}'
 
-    def beautiful_made_table(self):
-        print(f'{"+":-<9}{"+":-<5}{"+":-<20}{"+":-<6}{"+":->{24}}\n'
-              f'| {"группа":^} | {"df":^} | {"mean":^{17}} | {"sd":^{26}} |\n'
-              f'{"+":-<9}{"+":-<5}{"+":-<20}{"+":-<6}{"+":->{24}}')
-        for i, j in self.groups.items():
-            print(f'| {i:^6} | {j["df"]:^{2}} | '
-                  f'{j["mean"].quantize(Decimal("1.000")):^{17}} | {j["sd"].quantize(Decimal("1.000")):^{26}} |')
-        print(f'{"+":-<9}{"+":-^}{"+":->{20}}{"+":->{34}}\n'
-              f'| {"f-value":^}| {self.f.quantize(Decimal("1.000")):^} | {"p-value":^} | {round(self.p, 4):^}|\n'
-              f'{"+":-<9}{"+":-^}{"+":->{20}}{"+":->{34}}')
+    # def beautiful_made_table(self):
+    #     print(f'{"+":-<9}{"+":-<5}{"+":-<20}{"+":-<6}{"+":->{24}}\n'
+    #           f'| {"группа":^} | {"df":^} | {"mean":^{17}} | {"sd":^{26}} |\n'
+    #           f'{"+":-<9}{"+":-<5}{"+":-<20}{"+":-<6}{"+":->{24}}')
+    #     for i, j in self.groups.items():
+    #         print(f'| {i:^6} | {j["df"]:^{2}} | '
+    #               f'{j["mean"].quantize(Decimal("1.000")):^{17}} | {j["sd"].quantize(Decimal("1.000")):^{26}} |')
+    #     print(f'{"+":-<9}{"+":-^}{"+":->{20}}{"+":->{34}}\n'
+    #           f'| {"f-value":^}| {self.f.quantize(Decimal("1.000")):^} | {"p-value":^} | {round(self.p, 4):^}|\n'
+    #           f'{"+":-<9}{"+":-^}{"+":->{20}}{"+":->{34}}')
 
     def gracefully_with_stat_packages(self):
         """on pandas"""
@@ -106,13 +110,11 @@ class MultiAnova(Anova):
     def __init__(self, file_for_analyze, dep):
         super().__init__(file_for_analyze=file_for_analyze)
         self.dep_var = dep
-        #self.groups = collections.defaultdict()
+        self.multi = True
 
     def run(self):
         self.open_file()
-
-        for i, j in self.groups.items():
-            print(i, j["D1"])
+        self.represent(self.groups)
 
     def writer(self, data):
         indep_list = data.fieldnames.copy()
@@ -132,9 +134,14 @@ class MultiAnova(Anova):
                 except Exception:
                     self.groups[val[indep_list[0]]] = {val[i]: {'mean': [Decimal(val[self.dep_var])]}}
                     cprint(f'exception - {self.groups}', color='blue')
-                    
-    def represent(self):
-        pass
+
+    def represent(self, subtree):
+        for i, j in subtree.items():
+            if isinstance(j, dict):
+                if not (i == '1' or i == '2'):
+                    self.calculate(subtree=subtree)
+                    return
+                self.represent(j)
 
 
 if __name__ == '__main__':
@@ -144,4 +151,3 @@ if __name__ == '__main__':
     my.run()
 
 # TODO после освоения расчетов статистических перенести работу на статистические пакеты
-
