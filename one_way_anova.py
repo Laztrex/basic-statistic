@@ -9,6 +9,7 @@ import scipy.stats as sp
 from decimal import *
 from termcolor import cprint
 import collections
+from collections import Counter
 
 
 class Anova:
@@ -20,11 +21,14 @@ class Anova:
         self.indep_var = indep_var
         self.dep_var = dep_var
         self.sum_mean = 0
+        self.multi = False
+        self.dict_set = []
         self.ssb, self.ssw, self.sst, self.f, self.p = Decimal(0), Decimal(0), Decimal(0), Decimal(0), 0
 
     def run(self):
         self.open_file()
-        self.calculate()
+        if not self.multi:
+            self.calculate()
 
     def open_file(self):
         with open(self.file, 'r', newline='') as csv_file:
@@ -41,10 +45,11 @@ class Anova:
     def calculate(self, subtree=None):
         if subtree is None:
             subtree = self.groups
-        total_mean, n = 0, 0
+        total_mean, n, val = 0, 0, []
         for group, values in subtree.items():
             summ = Decimal(sum(values["mean"]))
             lenght = len(values["mean"])
+            val = values["mean"]
             total_mean += summ
             n += lenght
             subtree[group] = {'df': lenght}
@@ -52,20 +57,29 @@ class Anova:
             subtree[group]["mean"] = mean
             subtree[group].update({'sd': Decimal(sqrt(self.calc_ssw(values["mean"], mean) / lenght - 1))})
 
-
         print(subtree)
         print(self.calc_ssb(subtree=subtree, mean_gr=total_mean / n))
-        print(self.ssb / (len(subtree) - 1))
+        print(f'mean Sq ssb - {self.ssb / (len(subtree) - 1)}')
         print(f'ssw - {self.ssw}')
-        print(self.ssw / (n - len(subtree)))
+        print(f'Mean Sq ssw - {self.ssw / (n - len(subtree))}')
         print(self.f_value(subtree, n))
         print(self.p_value(int(self.f), len(subtree) - 1, n - len(subtree)))
         # self.beautiful_made_table()
 
     def calc_ssb(self, subtree, mean_gr):
-        for i in subtree.values():
-            self.ssb += i["df"] * ((i["mean"] - mean_gr) ** 2)
-        return f'ssb - {self.ssb}'
+        if self.multi:
+            self.ssb = 0
+            df = len(subtree)
+            for i in subtree.values():
+                self.ssb += (i["mean"] - mean_gr) ** 2
+            if df == 2:
+                return f'ssb (sum Sq) - {3 * self.repeat * self.ssb}'
+            else:
+                return f'ssb (sum Sq) - {2 * self.repeat * self.ssb}'
+        else:
+            for i in subtree.values():
+                self.ssb += i["df"] * ((i["mean"] - mean_gr) ** 2)
+            return f'ssb - {self.ssb}'
 
     def calc_ssw(self, values, mean_group):
         p = 0
@@ -107,47 +121,83 @@ class Anova:
 
 class MultiAnova(Anova):
 
-    def __init__(self, file_for_analyze, dep):
+    def __init__(self, file_for_analyze, dep, repeat=1):
+        self.repeat = repeat
         super().__init__(file_for_analyze=file_for_analyze)
         self.dep_var = dep
         self.multi = True
+        self.x_i, self.x_j, self.X_total = 0, 0, 0
+        self.one_dict = {}
+        self.two_dict = {}
+        self.a, self.b = 6, 9
+        self.new_dict = collections.defaultdict(int)
 
     def run(self):
         self.open_file()
-        self.represent(self.groups)
 
     def writer(self, data):
         indep_list = data.fieldnames.copy()
+        print(indep_list)
         indep_list.remove(self.dep_var)
         for val in data:
             for i in indep_list[1:]:
-                try:
-                    if val[i] in self.groups[val[indep_list[0]]]:
-                        self.groups[val[indep_list[0]]][val[i]]["mean"] += ([Decimal(val[self.dep_var])])
-                        cprint(f'if - {self.groups}', color='cyan')
-                    elif val[i]:
-                        self.groups[val[indep_list[0]]].update({
-                            val[i]: {'mean': [Decimal(val[self.dep_var])]}})
-                        cprint(f'else - {self.groups}', color='green')
-                    else:
-                        continue
-                except Exception:
-                    self.groups[val[indep_list[0]]] = {val[i]: {'mean': [Decimal(val[self.dep_var])]}}
-                    cprint(f'exception - {self.groups}', color='blue')
+                if val[indep_list[0]] in self.one_dict:
+                    self.one_dict[val[indep_list[0]]]["mean"] += [Decimal(val[self.dep_var])]
+                else:
+                    self.one_dict[val[indep_list[0]]] = {"mean": [Decimal(val[self.dep_var])]}
+                if val[i] in self.two_dict:
+                    self.two_dict[val[i]]["mean"] += [Decimal(val[self.dep_var])]
+                else:
+                    self.two_dict[val[i]] = {"mean": [Decimal(val[self.dep_var])]}
 
-    def represent(self, subtree):
-        for i, j in subtree.items():
-            if isinstance(j, dict):
-                if not (i == '1' or i == '2'):
-                    self.calculate(subtree=subtree)
-                    return
-                self.represent(j)
+        for i in (self.one_dict, self.two_dict):
+            self.calculate(i)
+        print(self.one_dict)
+        print(self.two_dict)
+    #
+    # def representation(self):
+
+# TODO: SSAB - соединить с ssw + метод объединитель
+
+    # def permutation(self, it_dict):
+    #     # newdict = collections.defaultdict(dict)
+    #     # for key, value in it_dict.items():
+    #     #     for keey, string in value.items():
+    #     #         newdict[keey].update({key: string})
+    #     # print(f'new_dict - {newdict.items()}')
+    #
+    #     for i, j in it_dict.items():
+    #         self.mean_j_1 += sum(j["A"]["mean"])
+    #         self.mean_j_2 += sum(j["B"]["mean"])
+    #         self.mean_j_3 += sum(j["C"]["mean"])
+    #
+    #         if i == "1":
+    #             for a, b in j.items():
+    #                 self.mean_i_1 += sum(b["mean"])
+    #         elif i == "2":
+    #             for a, b in j.items():
+    #                 self.mean_i_2 += sum(b["mean"])
+    #
+    #     print(self.mean_i_1 / 9)
+    #     print(self.mean_i_2 / 9)
+    #     print(self.mean_j_1 / 6)
+    #     print(self.mean_j_2 / 6)
+    #     print(self.mean_j_3 / 6)
+
+
+
+    # def multi_calculate(self, data):
+    #     for i, j in data.items():
+    #         self.X_total += j["mean"]  # другой способ общий Xср, без Counter()
+    #         self.x_j += data[i]["mean"]
+
+
 
 
 if __name__ == '__main__':
     # my_statistic = Anova(file_for_analyze='genetherapy.csv')
     # my_statistic.run()
-    my = MultiAnova('atherosclerosis.csv', 'expr')
+    my = MultiAnova('test_sample.csv', 'expr', 3)
     my.run()
 
 # TODO после освоения расчетов статистических перенести работу на статистические пакеты
