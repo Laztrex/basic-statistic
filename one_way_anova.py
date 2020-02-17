@@ -145,16 +145,23 @@ class MultiAnova(Anova):
                 else:
                     self.two_dict[val[i]] = {"mean": [Decimal(val[self.dep_var])]}
 
+                self.new_dict[val[i] + val[indep_list[0]]] += [Decimal(val[self.dep_var])]  #TODO а дальше спец методы со словарями (объединение, zip и тд), чтобы вытянуть нужную строку и опознать среднее для нее
+
+                    # TODO создать 3-й словарь с пересечение групп
+                    # >> > Matrix[(2, 3, 4)] = 88
+                    # >> > Matrix[(7, 8, 9)] = 99
+
         print(self.one_dict)
         print(self.two_dict)
-        a = [Decimal('12.05'), Decimal('23.94'), Decimal('14.63'), Decimal('15.17'), Decimal('18.52'), Decimal('19.57'), Decimal('9.48'), Decimal('6.92'), Decimal('10.47')]
-        b = self.group(a, count=3)
-        print(list(b))
+        # a = [Decimal('12.05'), Decimal('23.94'), Decimal('14.63'), Decimal('15.17'), Decimal('18.52'), Decimal('19.57'), Decimal('9.48'), Decimal('6.92'), Decimal('10.47')]
+        # # b = self.group(a, count=3)
+        #         # print(list(b))
 
         for i in (self.one_dict, self.two_dict):
             self.calculate(i)
         print(self.one_dict)
         print(self.two_dict)
+        print(self.new_dict)
 
     def calc_ssb(self, subtree, mean_gr):
         self.ssb = 0
