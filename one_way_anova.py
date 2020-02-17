@@ -45,18 +45,18 @@ class Anova:
     def calculate(self, subtree=None):
         if subtree is None:
             subtree = self.groups
-        total_mean, n, val = 0, 0, []
+        total_mean, n = 0, 0
         for group, values in subtree.items():
             summ = Decimal(sum(values["mean"]))
             lenght = len(values["mean"])
-            val = values["mean"]
+            self.calc_ssa_ssb += values["mean"]
             total_mean += summ
             n += lenght
             subtree[group] = {'df': lenght}
             mean = summ / lenght
             subtree[group]["mean"] = mean
             subtree[group].update({'sd': Decimal(sqrt(self.calc_ssw(values["mean"], mean) / lenght - 1))})
-
+        self.total_mean = total_mean / n
         print(subtree)
         print(self.calc_ssb(subtree=subtree, mean_gr=total_mean / n))
         print(f'mean Sq ssb - {self.ssb / (len(subtree) - 1)}')
@@ -81,13 +81,16 @@ class Anova:
                 self.ssb += i["df"] * ((i["mean"] - mean_gr) ** 2)
             return f'ssb - {self.ssb}'
 
-    def calc_ssw(self, values, mean_group):
+    def calc_ssw(self, values, mean_group, mean_total=None):
         p = 0
-        for i in values:
-            val = (i - mean_group) ** 2
-            p += val
-            self.ssw += val
-        return p
+        if mean_total:
+            pass
+        else:
+            for i in values:
+                val = (i - mean_group) ** 2
+                p += val
+                self.ssw += val
+            return p
 
     def p_value(self, f, dfb, dfw):
         self.p = sp.f.sf(f, dfb, dfw)
@@ -126,11 +129,12 @@ class MultiAnova(Anova):
         super().__init__(file_for_analyze=file_for_analyze)
         self.dep_var = dep
         self.multi = True
-        self.x_i, self.x_j, self.X_total = 0, 0, 0
         self.one_dict = {}
         self.two_dict = {}
         self.a, self.b = 6, 9
         self.new_dict = collections.defaultdict(int)
+        self.calc_ssa_ssb = []
+        self.total_mean = 0
 
     def run(self):
         self.open_file()
@@ -154,44 +158,24 @@ class MultiAnova(Anova):
             self.calculate(i)
         print(self.one_dict)
         print(self.two_dict)
+
+        print(self.calc_ssa_ssb)
+        print(len(self.calc_ssa_ssb))
+
+        # self.calc_ssw(values=set(self.calc_ssa_ssb), )
+
+    # def calc_ssa_ssb(self, data, mean_x):
+    #     ssab = 0
+    #     ssab += self.calc_ssw()
     #
     # def representation(self):
 
 # TODO: SSAB - соединить с ssw + метод объединитель
 
-    # def permutation(self, it_dict):
-    #     # newdict = collections.defaultdict(dict)
-    #     # for key, value in it_dict.items():
-    #     #     for keey, string in value.items():
-    #     #         newdict[keey].update({key: string})
-    #     # print(f'new_dict - {newdict.items()}')
-    #
-    #     for i, j in it_dict.items():
-    #         self.mean_j_1 += sum(j["A"]["mean"])
-    #         self.mean_j_2 += sum(j["B"]["mean"])
-    #         self.mean_j_3 += sum(j["C"]["mean"])
-    #
-    #         if i == "1":
-    #             for a, b in j.items():
-    #                 self.mean_i_1 += sum(b["mean"])
-    #         elif i == "2":
-    #             for a, b in j.items():
-    #                 self.mean_i_2 += sum(b["mean"])
-    #
-    #     print(self.mean_i_1 / 9)
-    #     print(self.mean_i_2 / 9)
-    #     print(self.mean_j_1 / 6)
-    #     print(self.mean_j_2 / 6)
-    #     print(self.mean_j_3 / 6)
-
-
-
     # def multi_calculate(self, data):
     #     for i, j in data.items():
     #         self.X_total += j["mean"]  # другой способ общий Xср, без Counter()
     #         self.x_j += data[i]["mean"]
-
-
 
 
 if __name__ == '__main__':
