@@ -10,6 +10,7 @@ from decimal import *
 from termcolor import cprint
 import collections
 from collections import Counter
+from itertools import chain
 
 
 class Anova:
@@ -49,7 +50,7 @@ class Anova:
         for group, values in subtree.items():
             summ = Decimal(sum(values["mean"]))
             lenght = len(values["mean"])
-            self.calc_ssa_ssb += values["mean"]
+            # self.calc_ssa_ssb += values["mean"] # TODO по другому придумать
             total_mean += summ
             n += lenght
             subtree[group] = {'df': lenght}
@@ -67,19 +68,9 @@ class Anova:
         # self.beautiful_made_table()
 
     def calc_ssb(self, subtree, mean_gr):
-        if self.multi:
-            self.ssb = 0
-            df = len(subtree)
-            for i in subtree.values():
-                self.ssb += (i["mean"] - mean_gr) ** 2
-            if df == 2:
-                return f'ssb (sum Sq) - {3 * self.repeat * self.ssb}'
-            else:
-                return f'ssb (sum Sq) - {2 * self.repeat * self.ssb}'
-        else:
-            for i in subtree.values():
-                self.ssb += i["df"] * ((i["mean"] - mean_gr) ** 2)
-            return f'ssb - {self.ssb}'
+        for i in subtree.values():
+            self.ssb += i["df"] * ((i["mean"] - mean_gr) ** 2)
+        return f'ssb - {self.ssb}'
 
     def calc_ssw(self, values, mean_group, mean_total=None):
         p = 0
@@ -129,10 +120,10 @@ class MultiAnova(Anova):
         super().__init__(file_for_analyze=file_for_analyze)
         self.dep_var = dep
         self.multi = True
-        self.one_dict = {}
-        self.two_dict = {}
+        self.one_dict = collections.OrderedDict()
+        self.two_dict = collections.OrderedDict()
         self.a, self.b = 6, 9
-        self.new_dict = collections.defaultdict(int)
+        self.new_dict = collections.defaultdict(list)
         self.calc_ssa_ssb = []
         self.total_mean = 0
 
@@ -154,19 +145,34 @@ class MultiAnova(Anova):
                 else:
                     self.two_dict[val[i]] = {"mean": [Decimal(val[self.dep_var])]}
 
+        print(self.one_dict)
+        print(self.two_dict)
+        a = [Decimal('12.05'), Decimal('23.94'), Decimal('14.63'), Decimal('15.17'), Decimal('18.52'), Decimal('19.57'), Decimal('9.48'), Decimal('6.92'), Decimal('10.47')]
+        b = self.group(a, count=3)
+        print(list(b))
+
         for i in (self.one_dict, self.two_dict):
             self.calculate(i)
         print(self.one_dict)
         print(self.two_dict)
 
-        print(self.calc_ssa_ssb)
-        print(len(self.calc_ssa_ssb))
+    def calc_ssb(self, subtree, mean_gr):
+        self.ssb = 0
+        df = len(subtree)
+        for i in subtree.values():
+            self.ssb += (i["mean"] - mean_gr) ** 2
+        if df == 2:
+            return f'ssb (sum Sq) - {3 * self.repeat * self.ssb}'
+        else:
+            return f'ssb (sum Sq) - {2 * self.repeat * self.ssb}'
 
-        # self.calc_ssw(values=set(self.calc_ssa_ssb), )
+    def group(self, iterable, count):
+        """ Группировка элементов последовательности по count элементов """
 
+        return zip(*[iter(iterable)] * count)
     # def calc_ssa_ssb(self, data, mean_x):
     #     ssab = 0
-    #     ssab += self.calc_ssw()
+
     #
     # def representation(self):
 
