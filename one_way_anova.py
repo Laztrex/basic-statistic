@@ -141,11 +141,9 @@ class MultiAnova:
     def open_file(self):
         self.data = pd.read_csv(self.file_with_data)
 
-    def consecutive(self, my_iter, data):
-        for i in data:
-            for a in my_iter:
-                if a == i:
-                    self.group[i] += 1
+    def consecutive(self, my_iter, group):
+        for i in my_iter:  # TODO: перебор по всем значениям
+            self.group[i] += [self.data[self.data[group] == d][self.dep_var].mean() for d in self.data]
 
     def calculate(self):
         self.indept_list = list(self.data.keys())
@@ -156,7 +154,7 @@ class MultiAnova:
         print(self.df_a, self.df_b)
         print(self.data["mag"].unique())
         for i in self.indept_list:
-            self.consecutive(my_iter=self.data[i], data=self.data[i].unique())
+            self.consecutive(my_iter=self.data[i], group=i)
         print(self.group)
 
     def ssx(self, group_mean):
