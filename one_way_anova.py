@@ -47,24 +47,33 @@ class Anova:
         if subtree is None:
             subtree = self.groups
         total_mean, n = 0, 0
+
         for group, values in subtree.items():
-            summ = Decimal(sum(values["mean"]))
-            lenght = len(values["mean"])
-            # self.calc_ssa_ssb += values["mean"] # TODO по другому придумать
-            total_mean += summ
-            n += lenght
-            subtree[group] = {'df': lenght}
-            mean = summ / lenght
-            subtree[group]["mean"] = mean
-            subtree[group].update({'sd': Decimal(sqrt(self.calc_ssw(values["mean"], mean) / lenght - 1))})
+            if self.multi:
+                summ = Decimal(sum(values))
+                lenght = len(values)
+                total_mean += summ
+                n += lenght
+                mean = summ / lenght
+                subtree[group] = mean
+            else:
+                summ = Decimal(sum(values["mean"]))
+                lenght = len(values["mean"])
+                total_mean += summ
+                n += lenght
+                subtree[group] = {'df': lenght}
+                mean = summ / lenght
+                subtree[group]["mean"] = mean
+                subtree[group].update({'sd': Decimal(sqrt(self.calc_ssw(values["mean"], mean) / lenght - 1))})
+
         self.total_mean = total_mean / n
         print(subtree)
         print(self.calc_ssb(subtree=subtree, mean_gr=total_mean / n))
         print(f'mean Sq ssb - {self.ssb / (len(subtree) - 1)}')
         print(f'ssw - {self.ssw}')
         print(f'Mean Sq ssw - {self.ssw / (n - len(subtree))}')
-        print(self.f_value(subtree, n))
-        print(self.p_value(int(self.f), len(subtree) - 1, n - len(subtree)))
+        # print(self.f_value(subtree, n))
+        # print(self.p_value(int(self.f), len(subtree) - 1, n - len(subtree)))
         # self.beautiful_made_table()
 
     def calc_ssb(self, subtree, mean_gr):
@@ -123,7 +132,8 @@ class MultiAnova(Anova):
         self.one_dict = collections.OrderedDict()
         self.two_dict = collections.OrderedDict()
         self.a, self.b = 6, 9
-        self.new_dict = collections.defaultdict(list)
+        self.matrix_column_dict = collections.defaultdict(list)
+        self.matrix_rows_dict = collections.defaultdict(list)
         self.calc_ssa_ssb = []
         self.total_mean = 0
 
@@ -132,42 +142,33 @@ class MultiAnova(Anova):
 
     def writer(self, data):
         indep_list = data.fieldnames.copy()
-        print(indep_list)
         indep_list.remove(self.dep_var)
         for val in data:
             for i in indep_list[1:]:
-                if val[indep_list[0]] in self.one_dict:
-                    self.one_dict[val[indep_list[0]]]["mean"] += [Decimal(val[self.dep_var])]
-                else:
-                    self.one_dict[val[indep_list[0]]] = {"mean": [Decimal(val[self.dep_var])]}
-                if val[i] in self.two_dict:
-                    self.two_dict[val[i]]["mean"] += [Decimal(val[self.dep_var])]
-                else:
-                    self.two_dict[val[i]] = {"mean": [Decimal(val[self.dep_var])]}
-
-                self.new_dict[val[i] + val[indep_list[0]]] += [Decimal(val[self.dep_var])]  #TODO а дальше спец методы со словарями (объединение, zip и тд), чтобы вытянуть нужную строку и опознать среднее для нее
-
+                self.matrix_column_dict['column' + ' ' + val[i]] += [Decimal(val[self.dep_var])]  #TODO а дальше спец методы со словарями (объединение, zip и тд), чтобы вытянуть нужную строку и опознать среднее для нее
+                self.matrix_rows_dict['rows' + ' ' + val[indep_list[0]]] += [Decimal(val[self.dep_var])]
                     # TODO создать 3-й словарь с пересечение групп
                     # >> > Matrix[(2, 3, 4)] = 88
                     # >> > Matrix[(7, 8, 9)] = 99
-
-        print(self.one_dict)
-        print(self.two_dict)
-        # a = [Decimal('12.05'), Decimal('23.94'), Decimal('14.63'), Decimal('15.17'), Decimal('18.52'), Decimal('19.57'), Decimal('9.48'), Decimal('6.92'), Decimal('10.47')]
-        # # b = self.group(a, count=3)
-        #         # print(list(b))
+        self.one_dict = self.matrix_column_dict.copy()
+        self.two_dict = self.matrix_rows_dict.copy() # TODO: теперь их перемножить, скомпехешнев
 
         for i in (self.one_dict, self.two_dict):
             self.calculate(i)
+        print(self.matrix_column_dict)
+        print(self.matrix_rows_dict)
         print(self.one_dict)
         print(self.two_dict)
-        print(self.new_dict)
+
+    # def representation(self, my_dict, too_my_dict):
+    #     for a in group:
+    #         [self.new_dict[i].append([mean]) for i in my_dict.keys() if i.endswith(a)]
 
     def calc_ssb(self, subtree, mean_gr):
         self.ssb = 0
         df = len(subtree)
         for i in subtree.values():
-            self.ssb += (i["mean"] - mean_gr) ** 2
+            self.ssb += (i - mean_gr) ** 2
         if df == 2:
             return f'ssb (sum Sq) - {3 * self.repeat * self.ssb}'
         else:
@@ -177,24 +178,15 @@ class MultiAnova(Anova):
         """ Группировка элементов последовательности по count элементов """
 
         return zip(*[iter(iterable)] * count)
-    # def calc_ssa_ssb(self, data, mean_x):
-    #     ssab = 0
 
-    #
-    # def representation(self):
-
-# TODO: SSAB - соединить с ssw + метод объединитель
-
-    # def multi_calculate(self, data):
-    #     for i, j in data.items():
-    #         self.X_total += j["mean"]  # другой способ общий Xср, без Counter()
-    #         self.x_j += data[i]["mean"]
+    def calc_ssw_new(self, values, mean_group, mean_total=None):
+        pass
 
 
 if __name__ == '__main__':
-    # my_statistic = Anova(file_for_analyze='genetherapy.csv')
-    # my_statistic.run()
-    my = MultiAnova('test_sample.csv', 'expr', 3)
-    my.run()
+    my_statistic = Anova(file_for_analyze='genetherapy.csv')
+    my_statistic.run()
+    # my = MultiAnova('test_sample.csv', 'expr', 3)
+    # my.run()
 
 # TODO после освоения расчетов статистических перенести работу на статистические пакеты
