@@ -202,9 +202,9 @@ class MultiAnova(Anova):
 
 
 if __name__ == '__main__':
-    # my_statistic = Anova(file_for_analyze='genetherapy.csv')
-    # my_statistic.run()
-    my = MultiAnova('test_sample.csv', 'expr', 3)
-    my.run()
+    my_statistic = Anova(file_for_analyze='genetherapy.csv')
+    my_statistic.run()
+    # my = MultiAnova('test_sample.csv', 'expr', 3)
+    # my.run()
 
 # TODO после освоения расчетов статистических перенести работу на статистические пакеты
