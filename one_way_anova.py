@@ -125,14 +125,17 @@ class Anova:
 
 class MultiAnova:
 
-    def __init__(self, file_for_analyze, dep, repeat=1):
+    def __init__(self, file_for_analyze, dep, repeat=3):
         self.file_with_data = file_for_analyze
         self.dep_var = dep
         self.factors = None
         self.data = None
         self.indept_list = []
         self.df_a, self.df_b = 0, 0
-        self.group = collections.defaultdict(int)
+        self.group = collections.defaultdict(list)
+        self.repeat = repeat
+        self.ssq_w_val = 0
+        self.sst_val = 0
 
     def run(self):
         self.open_file()
@@ -142,20 +145,34 @@ class MultiAnova:
         self.data = pd.read_csv(self.file_with_data)
 
     def consecutive(self, my_iter, group):
-        for i in my_iter:  # TODO: перебор по всем значениям
-            self.group[i] += [self.data[self.data[group] == d][self.dep_var].mean() for d in self.data]
+        """Добавляет в словарь среднее для каждой из групп"""
+        copy_list = self.indept_list.copy()
+        copy_list.remove(group)
+        for i in my_iter:
+            if i == 1 or i == 2:
+                self.group[(group, i)] += [
+                    self.data[self.data[group] == i]
+                    [self.data[self.data[group] == i][copy_list[0]] == d][self.dep_var].mean()
+                    for d in self.data[self.data[group] == i][copy_list[0]]
+                ]
+        # TODO упростить выражение
 
     def calculate(self):
         self.indept_list = list(self.data.keys())
         self.indept_list.remove(self.dep_var)
         self.factors = dict(map(self.ssx, self.indept_list))
         print(self.factors)
-        print(self.sst())
+        self.sst_val = self.sst()
+        print(self.sst_val)
         print(self.df_a, self.df_b)
-        print(self.data["mag"].unique())
         for i in self.indept_list:
-            self.consecutive(my_iter=self.data[i], group=i)
+            self.consecutive(my_iter=self.data[i].unique(), group=i)
         print(self.group)
+        # print(self.ssq())
+        self.ssq_w_val = self.ssq_w()
+        print(self.ssq_w_val)
+        print(self.ss_versus(*self.factors.values(), self.sst_val, self.ssq_w_val))
+        # print(self.x_ij())
 
     def ssx(self, group_mean):
         """вычисление SSa (объяснённая влиянием фактора A сумма квадратов отклонений)
@@ -171,19 +188,21 @@ class MultiAnova:
         """Общая сумма SS (квадратов отклонений)"""
         return sum((self.data[self.dep_var] - self.data[self.dep_var].mean()) ** 2)
 
-    def ss_versus(self):
+    # def ssq(self):
+    #     return sum(self.group.values()) / len(self.group)
+
+    def ss_versus(self, ssa, ssb, sst, ssq_w):
         """SSab - объяснённая влиянием взаимодействия факторов A и B сумма квадратов отклонений"""
-        pass
+        return sst - ssa - ssb - ssq_w
+
+    def ssq_w(self):
+        s = 0
+        for i, j in self.group.items():
+            s += sum((self.data[self.data[i[0]] == i[1]][self.dep_var] - j) ** 2)
+        return s
 
     def parameters_stats(self):
-
         pass
-
-# grand_mean = data['len'].mean()
-# ssq_a = sum([(data[data.supp == i].len.mean() - grand_mean) ** 2 for i in data.supp])
-# ssq_b = sum([(data[data.dose == i].len.mean() - grand_mean) ** 2 for i in data.dose])
-# ssq_t = sum((data.len - grand_mean) ** 2)
-
 
 
 # class MultiAnova(Anova):
@@ -271,8 +290,7 @@ class MultiAnova:
 if __name__ == '__main__':
     # my_statistic = Anova(file_for_analyze='genetherapy.csv')
     # my_statistic.run()
-    my = MultiAnova('test_sample.csv', 'expr', 3)
+    my = MultiAnova('test_sample.csv', 'expr', 1)
     my.run()
-
 
 # TODO после освоения расчетов статистических перенести работу на статистические пакеты
