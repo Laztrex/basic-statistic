@@ -10,8 +10,7 @@ from decimal import *
 from termcolor import cprint
 import collections
 from collections import Counter
-from itertools import chain
-import pandas as pd
+from pandas import read_csv
 
 
 class Anova:
@@ -134,15 +133,16 @@ class MultiAnova:
         self.df_a, self.df_b = 0, 0
         self.group = collections.defaultdict(list)
         self.repeat = repeat
-        self.ssq_w_val = 0
-        self.sst_val = 0
+        self.dispers_val = []
+        self.ssa_ssb = 0
+        self.ssq = 0
 
     def run(self):
         self.open_file()
         self.calculate()
 
     def open_file(self):
-        self.data = pd.read_csv(self.file_with_data)
+        self.data = read_csv(self.file_with_data)
 
     def consecutive(self, my_iter, group):
         """Добавляет в словарь среднее для каждой из групп"""
@@ -161,18 +161,16 @@ class MultiAnova:
         self.indept_list = list(self.data.keys())
         self.indept_list.remove(self.dep_var)
         self.factors = dict(map(self.ssx, self.indept_list))
-        print(self.factors)
-        self.sst_val = self.sst()
-        print(self.sst_val)
         print(self.df_a, self.df_b)
         for i in self.indept_list:
             self.consecutive(my_iter=self.data[i].unique(), group=i)
-        print(self.group)
-        # print(self.ssq())
-        self.ssq_w_val = self.ssq_w()
-        print(self.ssq_w_val)
-        print(self.ss_versus(*self.factors.values(), self.sst_val, self.ssq_w_val))
-        # print(self.x_ij())
+        self.ssq = self.ssq_w()
+        print(f'ssw {self.ssq}')
+        self.ssa_ssb = self.ss_versus(*self.factors.values(), self.sst(), self.ssq)
+        print(self.ssa_ssb)
+        self.dispers_val = (self.dispersia(*self.factors.values(), self.ssa_ssb, self.ssq))
+        print(self.dispers_val)
+        print(self.f_values(*self.dispers_val))
 
     def ssx(self, group_mean):
         """вычисление SSa (объяснённая влиянием фактора A сумма квадратов отклонений)
@@ -181,116 +179,46 @@ class MultiAnova:
             self.df_a = len(self.data[group_mean].unique()) - 1
         else:
             self.df_b = len(self.data[group_mean].unique()) - 1
-        return group_mean, sum([(self.data[self.data[group_mean] == j][self.dep_var].mean() -
-                                 self.data[self.dep_var].mean()) ** 2 for j in self.data[group_mean]])
+
+        ssb = sum([(self.data[self.data[group_mean] == j][self.dep_var].mean() -
+                    self.data[self.dep_var].mean()) ** 2 for j in self.data[group_mean]])
+        print(f'SSB ({group_mean}) - {ssb}')
+        return group_mean, ssb
 
     def sst(self):
         """Общая сумма SS (квадратов отклонений)"""
-        return sum((self.data[self.dep_var] - self.data[self.dep_var].mean()) ** 2)
-
-    # def ssq(self):
-    #     return sum(self.group.values()) / len(self.group)
+        sst = sum((self.data[self.dep_var] - self.data[self.dep_var].mean()) ** 2)
+        print(f'SS - {sst}')
+        return sst
 
     def ss_versus(self, ssa, ssb, sst, ssq_w):
         """SSab - объяснённая влиянием взаимодействия факторов A и B сумма квадратов отклонений"""
         return sst - ssa - ssb - ssq_w
 
     def ssq_w(self):
+        """Необъяснённая сумма квадратов отклонений или сумма квадратов отклонений ошибки"""
         s = 0
         for i, j in self.group.items():
             s += sum((self.data[self.data[i[0]] == i[1]][self.dep_var] - j) ** 2)
         return s
 
+    def ssw(self):
+        pass
+
     def parameters_stats(self):
         pass
 
+    def dispersia(self, ssa, ssb, ssab, ssq):
+        return ssa / self.df_a, ssb / self.df_b, ssab / (self.df_a * self.df_b), ssq / ((self.df_a + 1) * (self.df_b + 1) * (self.repeat - 1))
 
-# class MultiAnova(Anova):
-#
-#     def __init__(self, file_for_analyze, dep, repeat=1):
-#         self.repeat = repeat
-#         super().__init__(file_for_analyze=file_for_analyze)
-#         self.dep_var = dep
-#         self.multi = True
-#         self.one_dict = collections.OrderedDict()
-#         self.two_dict = collections.OrderedDict()
-#         self.a, self.b = 6, 9
-#         self.matrix_column_dict = collections.defaultdict(list)
-#         self.matrix_rows_dict = collections.defaultdict(list)
-#         self.calc_ssa_ssb = []
-#         self.total_mean = 0
-#         self.a = self.matrix_rows_dict.values()
-#         self.b = self.matrix_column_dict.values()
-#
-#     def run(self):
-#         self.open_file()
-#
-#     def writer(self, data):
-#         indep_list = data.fieldnames.copy()
-#         indep_list.remove(self.dep_var)
-#         for val in data:
-#             for i in indep_list[1:]:
-#                 self.matrix_column_dict['column' + ' ' + val[i]] += [Decimal(val[self.dep_var])]  # TODO а дальше спец методы со словарями (объединение, zip и тд), чтобы вытянуть нужную строку и опознать среднее для нее
-#                 self.matrix_rows_dict['rows' + ' ' + val[indep_list[0]]] += [Decimal(val[self.dep_var])]
-#                 # TODO создать 3-й словарь с пересечение групп
-#                 # >> > Matrix[(2, 3, 4)] = 88
-#                 # >> > Matrix[(7, 8, 9)] = 99
-#         self.one_dict = self.matrix_column_dict.copy()
-#         self.two_dict = self.matrix_rows_dict.copy()  # TODO: теперь их перемножить, скомпехешнев
-#
-#         for i in (self.one_dict, self.two_dict):
-#             self.calculate(i)
-#         print(self.matrix_column_dict)
-#         print(self.matrix_rows_dict)
-#         print(self.one_dict)
-#         print(self.two_dict)
-#
-#         for i, j in self.matrix_column_dict.items():
-#             print(j)
-#             self.matrix_column_dict[i] = list(self.group(j, len(self.matrix_column_dict)))
-#
-#         self.calc_ssw_new(values={**self.matrix_column_dict, **self.matrix_rows_dict},
-#                           mean_group_xi=self.one_dict,
-#                           mean_group_xj=self.two_dict,
-#                           mean_total=self.total_mean)
-#
-#
-#
-#     # def representation(self, my_dict, too_my_dict):
-#     #     for a in group:
-#     #         [self.new_dict[i].append([mean]) for i in my_dict.keys() if i.endswith(a)]
-#
-#     def calc_ssb(self, subtree, mean_gr):
-#         self.ssb = 0
-#         df = len(subtree)
-#         for i in subtree.values():
-#             self.ssb += (i - mean_gr) ** 2
-#         if df == 2:
-#             return f'ssb (sum Sq) - {3 * self.repeat * self.ssb}'
-#         else:
-#             return f'ssb (sum Sq) - {2 * self.repeat * self.ssb}'
-#
-#     def group(self, iterable, count):
-#         """ Группировка элементов последовательности по count элементов """
-#
-#         return zip(*[iter(iterable)] * count)
-#
-#     def calc_ssw_new(self, values, mean_group_xi, mean_group_xj, mean_total):
-#         # cprint(values, color='blue')
-#         # cprint(mean_group_xi, color='blue')
-#         # cprint(mean_group_xj, color='blue')
-#         for i, j in values.items():
-#             print(i, j)
-#
-#
-#             # if i in mean_group_xi:
-#             #     self.ssw += [n - mean_group_xi[i]
+    def f_values(self, msa, msb, msab, msq):
+        return msa / msq, msb / msq, msab / msq
 
 
 if __name__ == '__main__':
     # my_statistic = Anova(file_for_analyze='genetherapy.csv')
     # my_statistic.run()
-    my = MultiAnova('test_sample.csv', 'expr', 1)
+    my = MultiAnova('test_sample.csv', 'expr', 3)
     my.run()
 
 # TODO после освоения расчетов статистических перенести работу на статистические пакеты
