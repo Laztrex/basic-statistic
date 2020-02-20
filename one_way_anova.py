@@ -166,9 +166,14 @@ class MultiAnova:
             self.consecutive(my_iter=self.data[i].unique(), group=i)
         self.ssq = self.ssq_w()
         print(f'ssw {self.ssq}')
-        self.ssa_ssb = self.ss_versus(*self.factors.values(), self.sst(), self.ssq)
-        print(self.ssa_ssb)
+
+        if self.repeat == 1:
+            self.ssa_ssb = self.ss_versus(*self.factors.values(), self.sst(), 0)
+        else:
+            self.ssa_ssb = self.ss_versus(*self.factors.values(), self.sst(), self.ssq)
+
         self.dispers_val = (self.dispersia(*self.factors.values(), self.ssa_ssb, self.ssq))
+        print(f'ssa_ssb {self.ssa_ssb}')
         print(self.dispers_val)
         print(self.f_values(*self.dispers_val))
 
@@ -209,7 +214,9 @@ class MultiAnova:
         pass
 
     def dispersia(self, ssa, ssb, ssab, ssq):
-        return ssa / self.df_a, ssb / self.df_b, ssab / (self.df_a * self.df_b), ssq / ((self.df_a + 1) * (self.df_b + 1) * (self.repeat - 1))
+        return ssa / self.df_a, ssb / self.df_b, ssab / (self.df_a * self.df_b), ssq / (
+                    (self.df_a + 1) * (self.df_b + 1) * (self.repeat - 1))
+        # TODO: без повторения ssw это ssab
 
     def f_values(self, msa, msb, msab, msq):
         return msa / msq, msb / msq, msab / msq
