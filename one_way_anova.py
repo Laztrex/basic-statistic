@@ -135,7 +135,7 @@ class MultiAnova:
         self.repeat = repeat
         self.dispers_val = []
         self.ssa_ssb = 0
-        self.ssq = 0
+        self.ssw_val = 0
 
     def run(self):
         self.open_file()
@@ -164,15 +164,17 @@ class MultiAnova:
         print(self.df_a, self.df_b)
         for i in self.indept_list:
             self.consecutive(my_iter=self.data[i].unique(), group=i)
-        self.ssq = self.ssq_w()
-        print(f'ssw {self.ssq}')
 
         if self.repeat == 1:
-            self.ssa_ssb = self.ss_versus(*self.factors.values(), self.sst(), 0)
+            self.ssw_val = self.ss_versus(*self.factors.values(), self.sst(), 0)
+            self.repeat += 1
+            self.dispers_val = (self.dispersia(*self.factors.values(), self.ssw_val, 0))
         else:
-            self.ssa_ssb = self.ss_versus(*self.factors.values(), self.sst(), self.ssq)
+            self.ssw_val = self.ssw()
+            self.ssa_ssb = self.ss_versus(*self.factors.values(), self.sst(), self.ssw_val)
+            self.dispers_val = (self.dispersia(*self.factors.values(), self.ssa_ssb, self.ssw_val))
 
-        self.dispers_val = (self.dispersia(*self.factors.values(), self.ssa_ssb, self.ssq))
+        print(f'ssw {self.ssw_val}')
         print(f'ssa_ssb {self.ssa_ssb}')
         print(self.dispers_val)
         print(self.f_values(*self.dispers_val))
@@ -200,26 +202,21 @@ class MultiAnova:
         """SSab - объяснённая влиянием взаимодействия факторов A и B сумма квадратов отклонений"""
         return sst - ssa - ssb - ssq_w
 
-    def ssq_w(self):
+    def ssw(self):
         """Необъяснённая сумма квадратов отклонений или сумма квадратов отклонений ошибки"""
         s = 0
         for i, j in self.group.items():
             s += sum((self.data[self.data[i[0]] == i[1]][self.dep_var] - j) ** 2)
         return s
 
-    def ssw(self):
-        pass
-
-    def parameters_stats(self):
-        pass
-
     def dispersia(self, ssa, ssb, ssab, ssq):
         return ssa / self.df_a, ssb / self.df_b, ssab / (self.df_a * self.df_b), ssq / (
                     (self.df_a + 1) * (self.df_b + 1) * (self.repeat - 1))
-        # TODO: без повторения ssw это ssab
 
     def f_values(self, msa, msb, msab, msq):
-        return msa / msq, msb / msq, msab / msq
+        m = len(self.data[self.dep_var].values) - len(self.data.keys())
+        dell = msq if msq else msab / m
+        return msa / dell, msb / dell, msab / dell
 
 
 if __name__ == '__main__':
