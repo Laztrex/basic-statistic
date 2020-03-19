@@ -163,8 +163,8 @@ class MultiAnova:
         self.indept_list.remove(self.dep_var)
         self.factors = dict(map(self.ssx, self.indept_list))
         print(self.df_a, self.df_b)
-        for i in self.indept_list:
-            self.consecutive(my_iter=self.data[i].unique(), group=i)
+        # for i in self.indept_list:
+        #     self.consecutive(my_iter=self.data[i].unique(), group=i)
 
         if self.repeat == 1:
             self.ssw_val = self.ss_versus(*self.factors.values(), self.sst(), 0)
@@ -206,10 +206,12 @@ class MultiAnova:
     def ssw(self):
         """Необъяснённая сумма квадратов отклонений или сумма квадратов отклонений ошибки"""
         s = 0
-        comp_one = [self.data[self.data[self.indept_list[0]] == i] for i in self.data[self.indept_list[0]].unique()]
-        comp_two = [[x_age[x_age[self.indept_list[1]] == d][self.dep_var].mean()
-                     for d in x_age[self.indept_list[1]]] for x_age in comp_one]
-        for num in range(len(self.group.items())):
+        one = self.indept_list.pop()
+        comp_one = [self.data[self.data[one] == i] for i in self.data[one].unique()]
+        two = self.indept_list.pop()
+        comp_two = [[x_age[x_age[two] == d][self.dep_var].mean()
+                     for d in x_age[two]] for x_age in comp_one]
+        for num in range(len(self.data[two].unique())):
             s += sum([sum((comp_one[num][self.dep_var] - comp_two[num]) ** 2)])
         return s
 
@@ -226,7 +228,7 @@ class MultiAnova:
 if __name__ == '__main__':
     # my_statistic = Anova(file_for_analyze='genetherapy.csv')
     # my_statistic.run()
-    my = MultiAnova('test_sample.csv', 'expr')
+    my = MultiAnova('birds.csv', 'var4')
     my.run()
 
 # TODO после освоения расчетов статистических перенести работу на статистические пакеты
