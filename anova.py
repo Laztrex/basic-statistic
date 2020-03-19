@@ -146,15 +146,16 @@ class MultiAnova:
 
     def consecutive(self, my_iter, group):
         """Добавляет в словарь среднее для каждой из групп"""
-        copy_list = self.indept_list.copy()
-        copy_list.remove(group)
-        for i in my_iter:
-            if i == 1 or i == 2:
-                self.group[(group, i)] += [
-                    self.data[self.data[group] == i]
-                    [self.data[self.data[group] == i][copy_list[0]] == d][self.dep_var].mean()
-                    for d in self.data[self.data[group] == i][copy_list[0]]
-                ]
+        pass
+        # copy_list = self.indept_list.copy()
+        # copy_list.remove(group)
+        # for i in my_iter:
+        #     if i == 1 or i == 2:
+        #         self.group[(group, i)] += [
+        #             self.data[self.data[group] == i]
+        #             [self.data[self.data[group] == i][copy_list[0]] == d][self.dep_var].mean()
+        #             for d in self.data[self.data[group] == i][copy_list[0]]
+        #         ]
         # TODO упростить выражение
 
     def calculate(self):
@@ -205,8 +206,11 @@ class MultiAnova:
     def ssw(self):
         """Необъяснённая сумма квадратов отклонений или сумма квадратов отклонений ошибки"""
         s = 0
-        for i, j in self.group.items():
-            s += sum((self.data[self.data[i[0]] == i[1]][self.dep_var] - j) ** 2)
+        comp_one = [self.data[self.data[self.indept_list[0]] == i] for i in self.data[self.indept_list[0]].unique()]
+        comp_two = [[x_age[x_age[self.indept_list[1]] == d][self.dep_var].mean()
+                     for d in x_age[self.indept_list[1]]] for x_age in comp_one]
+        for num in range(len(self.group.items())):
+            s += sum([sum((comp_one[num][self.dep_var] - comp_two[num]) ** 2)])
         return s
 
     def dispersia(self, ssa, ssb, ssab, ssq):
@@ -222,7 +226,7 @@ class MultiAnova:
 if __name__ == '__main__':
     # my_statistic = Anova(file_for_analyze='genetherapy.csv')
     # my_statistic.run()
-    my = MultiAnova('test_sample.csv', 'expr', 3)
+    my = MultiAnova('test_sample.csv', 'expr')
     my.run()
 
 # TODO после освоения расчетов статистических перенести работу на статистические пакеты
