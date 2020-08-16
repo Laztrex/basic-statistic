@@ -1,11 +1,12 @@
 import numpy as np
-import scipy.spatial
-from collections import defaultdict
 import re
+import scipy.spatial
 import scipy.linalg
-from scipy import interpolate
+
+from collections import defaultdict
 from math import sin, cos, exp
 from matplotlib import pylab as plt
+from scipy import interpolate
 
 
 class Comparison:
@@ -70,7 +71,7 @@ class Approximate:
             p = np.array(i)
             b = fx2(p)
             a = np.zeros((len(p), len(p)))
-            for j in range(0, len(i)):  # заполняем массив
+            for j in range(0, len(i)):
                 a[j, :] = np.array([p[j] ** n for n in range(0, len(i))])
             s1 = scipy.linalg.solve(a, b)
             print(s1)

@@ -1,16 +1,13 @@
 # Дан файл с данными по генной терапии - genetherapy.csv.
 # Задача: Сравнить эффективность четырех различных типов терапии, представленных в таблице.
-
-import csv
-from math import sqrt
-import pandas as pd
-import statistics
-import scipy.stats as sp
-from decimal import *
-from termcolor import cprint
 import collections
-from collections import Counter
-from pandas import read_csv
+import csv
+import os
+import pandas as pd
+import scipy.stats as sp
+
+from decimal import Decimal, getcontext
+from math import sqrt
 
 
 class Anova:
@@ -66,7 +63,6 @@ class Anova:
                 subtree[group]["mean"] = mean
                 subtree[group].update({'sd': Decimal(sqrt(self.calc_ssw(values["mean"], mean) / lenght - 1))})
 
-        self.total_mean = total_mean / n
         print(subtree)
         print(self.calc_ssb(subtree=subtree, mean_gr=total_mean / n))
         print(f'mean Sq ssb - {self.ssb / (len(subtree) - 1)}')
@@ -113,7 +109,7 @@ class Anova:
 
     def gracefully_with_stat_packages(self):
         """on pandas"""
-        data = pd.read_csv('genetherapy.csv', sep=',')
+        data = pd.read_csv('files/genetherapy.csv', sep=',')
 
         groups = pd.unique(data.Therapy.values)
         dict_data = {group: data['expr'][data.Therapy == group] for group in groups}
@@ -142,7 +138,7 @@ class MultiAnova:
         self.calculate()
 
     def open_file(self):
-        self.data = read_csv(self.file_with_data)
+        self.data = pd.read_csv(self.file_with_data)
 
     def consecutive(self, my_iter, group):
         """Добавляет в словарь среднее для каждой из групп"""
@@ -226,9 +222,9 @@ class MultiAnova:
 
 
 if __name__ == '__main__':
-    # my_statistic = Anova(file_for_analyze='genetherapy.csv')
-    # my_statistic.run()
-    my = MultiAnova('birds.csv', 'var4')
-    my.run()
+    my_statistic = Anova(file_for_analyze=os.getcwd() + '/stepik_math_stat/files/genetherapy.csv')
+    my_statistic.run()
+    # my = MultiAnova(os.getcwd() + '/stepik_math_stat/files/birds.csv', 'var4')
+    # my.run()
 
 # TODO после освоения расчетов статистических перенести работу на статистические пакеты
