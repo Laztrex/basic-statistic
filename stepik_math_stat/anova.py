@@ -222,7 +222,7 @@ class MultiAnova:
 
 
 if __name__ == '__main__':
-    my_statistic = Anova(file_for_analyze=os.getcwd() + '/stepik_math_stat/files/genetherapy.csv')
+    my_statistic = Anova(os.path.dirname(__file__) + '/files/genetherapy.csv')
     my_statistic.run()
     # my = MultiAnova(os.getcwd() + '/stepik_math_stat/files/birds.csv', 'var4')
     # my.run()
