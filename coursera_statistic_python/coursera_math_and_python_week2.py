@@ -8,6 +8,12 @@ from math import sin, cos, exp
 from matplotlib import pylab as plt
 from scipy import interpolate
 
+# Дан набор предложений, скопированных с Википедии. Каждое из них имеет "кошачью тему" в одном из трех смыслов:
+# кошки (животные) UNIX-утилита cat для вывода содержимого файлов версии операционной системы OS X, названные в честь
+# семейства кошачьих.
+# Задача — найти два предложения, которые ближе всего по смыслу к расположенному в самой
+# первой строке. В качестве меры близости по смыслу используется косинусное расстояние.
+
 
 class Comparison:
 
@@ -40,48 +46,48 @@ class Comparison:
                 self.index += 1
 
     def cos_operation(self):
-        m = np.zeros((self.numbers_sentence, len(self.words_dict)))  # создаем массив размерность строки*слова
-        print(m.shape)
+        massive = np.zeros((self.numbers_sentence, len(self.words_dict)))
+        print(massive.shape)
         print(self.sentences_list)
 
         for i in range(self.numbers_sentence):
             for word in self.sentences_list[i]:
                 curr_word = self.words_dict[word]
-                m[i][curr_word] += 1
+                massive[i][curr_word] += 1
 
         distances = list()
         for i in range(self.numbers_sentence):
-            distance = scipy.spatial.distance.cosine(m[0, :], m[i, :])  # считаем косинусную дистанцию
+            distance = scipy.spatial.distance.cosine(massive[0, :], massive[i, :])
             distances.append((i, distance))
-        sort = sorted(distances, key=lambda tup: tup[1])  # сортируем
+        sort = sorted(distances, key=lambda tup: tup[1])
         print(sort[1], sort[2])
 
 
 class Approximate:
 
     def __init__(self):
-        self.arrays = [[1, 15], [1, 8, 15], [1, 4, 8, 15], ]
+        self.arrays = [[1, 15], [1, 8, 15], [1, 4, 10, 15], ]
 
-    def f(self, x):
+    def func_given(self, x):
         return sin(x / 5.0) * exp(x / 10.0) + 5 * exp(-x / 2.0)
 
     def calculate(self):
-        fx2 = np.vectorize(self.f)
+        fx2 = np.vectorize(self.func_given)
         for i in self.arrays:
-            p = np.array(i)
-            b = fx2(p)
-            a = np.zeros((len(p), len(p)))
+            dots = np.array(i)
+            value = fx2(dots)
+            koef = np.zeros((len(dots), len(dots)))
             for j in range(0, len(i)):
-                a[j, :] = np.array([p[j] ** n for n in range(0, len(i))])
-            s1 = scipy.linalg.solve(a, b)
-            print(s1)
-            self.plot(p, b)
+                koef[j, :] = np.array([dots[j] ** n for n in range(0, len(i))])
+            solution_system = scipy.linalg.solve(koef, value)
+            print(solution_system)
+            self.plot(dots, value)
 
     def plot(self, x, y):
         if len(x) == 4:
             f = interpolate.interp1d(x, y, kind='quadratic')
-            ynew = f(x)
-            plt.plot(x, y, 'o', x, ynew, '-')
+            y_new = f(x)
+            plt.plot(x, y, 'o', x, y_new, '-')
             plt.show()
             return
         plt.plot(x, y)
@@ -89,7 +95,7 @@ class Approximate:
 
 
 if __name__ == '__main__':
-    # comparison = Comparison('sentences.txt')
+    # comparison = Comparison('files/sentences.txt')
     # comparison.run()
     aprx = Approximate()
     aprx.calculate()

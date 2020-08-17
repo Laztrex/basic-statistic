@@ -19,14 +19,12 @@ class Anova:
         self.indep_var = indep_var
         self.dep_var = dep_var
         self.sum_mean = 0
-        self.multi = False
         self.dict_set = []
         self.ssb, self.ssw, self.sst, self.f, self.p = Decimal(0), Decimal(0), Decimal(0), Decimal(0), 0
 
     def run(self):
         self.open_file()
-        if not self.multi:
-            self.calculate()
+        self.calculate()
 
     def open_file(self):
         with open(self.file, 'r', newline='') as csv_file:
@@ -46,22 +44,14 @@ class Anova:
         total_mean, n = 0, 0
 
         for group, values in subtree.items():
-            if self.multi:
-                summ = Decimal(sum(values))
-                lenght = len(values)
-                total_mean += summ
-                n += lenght
-                mean = summ / lenght
-                subtree[group] = mean
-            else:
-                summ = Decimal(sum(values["mean"]))
-                lenght = len(values["mean"])
-                total_mean += summ
-                n += lenght
-                subtree[group] = {'df': lenght}
-                mean = summ / lenght
-                subtree[group]["mean"] = mean
-                subtree[group].update({'sd': Decimal(sqrt(self.calc_ssw(values["mean"], mean) / lenght - 1))})
+            summ = Decimal(sum(values["mean"]))
+            lenght = len(values["mean"])
+            total_mean += summ
+            n += lenght
+            subtree[group] = {'df': lenght}
+            mean = summ / lenght
+            subtree[group]["mean"] = mean
+            subtree[group].update({'sd': Decimal(sqrt(self.calc_ssw(values["mean"], mean) / lenght - 1))})
 
         print(subtree)
         print(self.calc_ssb(subtree=subtree, mean_gr=total_mean / n))
@@ -140,27 +130,11 @@ class MultiAnova:
     def open_file(self):
         self.data = pd.read_csv(self.file_with_data)
 
-    def consecutive(self, my_iter, group):
-        """Добавляет в словарь среднее для каждой из групп"""
-        pass
-        # copy_list = self.indept_list.copy()
-        # copy_list.remove(group)
-        # for i in my_iter:
-        #     if i == 1 or i == 2:
-        #         self.group[(group, i)] += [
-        #             self.data[self.data[group] == i]
-        #             [self.data[self.data[group] == i][copy_list[0]] == d][self.dep_var].mean()
-        #             for d in self.data[self.data[group] == i][copy_list[0]]
-        #         ]
-        # TODO упростить выражение
-
     def calculate(self):
         self.indept_list = list(self.data.keys())
         self.indept_list.remove(self.dep_var)
         self.factors = dict(map(self.ssx, self.indept_list))
         print(self.df_a, self.df_b)
-        # for i in self.indept_list:
-        #     self.consecutive(my_iter=self.data[i].unique(), group=i)
 
         if self.repeat == 1:
             self.ssw_val = self.ss_versus(*self.factors.values(), self.sst(), 0)
@@ -222,9 +196,9 @@ class MultiAnova:
 
 
 if __name__ == '__main__':
-    my_statistic = Anova(os.path.dirname(__file__) + '/files/genetherapy.csv')
-    my_statistic.run()
-    # my = MultiAnova(os.getcwd() + '/stepik_math_stat/files/birds.csv', 'var4')
-    # my.run()
+    # my_statistic = Anova('files/genetherapy.csv')
+    # my_statistic.run()
+    my = MultiAnova('files/birds.csv', 'var4')
+    my.run()
 
 # TODO после освоения расчетов статистических перенести работу на статистические пакеты
