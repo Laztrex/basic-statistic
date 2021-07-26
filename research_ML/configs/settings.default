@@ -1,0 +1,3 @@
+KAGGLE_USERNAME = '<kaggle-user-name>'
+KAGGLE_KEY = '<kaggle-key>'
+KAGGLE_PROXY = '<proxy-address>'
